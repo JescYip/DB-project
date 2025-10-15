@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>咖啡订购系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>☕ 咖啡订购系统</h1>
+            <p>欢迎来到我们的咖啡店，享受最优质的咖啡体验</p>
+        </header>
+
+        <!-- 导航标签 -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-tab="menu">菜单</button>
+            <button class="nav-tab" data-tab="cart">购物车</button>
+            <button class="nav-tab" data-tab="order">下单</button>
+            <button class="nav-tab" data-tab="orders">订单历史</button>
+            <a href="/admin" class="nav-tab" style="text-decoration: none; display: flex; align-items: center;">管理后台</a>
+        </div>
+
+        <!-- 内容区域 -->
+        <div class="content">
+            <!-- 菜单标签页 -->
+            <div id="menuTab" class="tab-content active">
+                <h2 style="color: #4a5568; margin-bottom: 20px;">我们的菜单</h2>
+                <div id="productsContainer">
+                    <div style="text-align: center; padding: 40px;">
+                        <div class="loading"></div>
+                        <p style="margin-top: 10px; color: #718096;">正在加载菜单...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 购物车标签页 -->
+            <div id="cartTab" class="tab-content">
+                <h2 style="color: #4a5568; margin-bottom: 20px;">购物车</h2>
+                <div class="cart">
+                    <div id="cartItems">
+                        <p style="text-align: center; color: #718096;">购物车为空</p>
+                    </div>
+                    <div class="cart-total" id="cartTotal">总计: ¥0.00</div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-danger" onclick="clearCart()">清空购物车</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下单标签页 -->
+            <div id="orderTab" class="tab-content">
+                <h2 style="color: #4a5568; margin-bottom: 20px;">订单信息</h2>
+                
+                <!-- 购物车摘要 -->
+                <div class="cart" style="margin-bottom: 30px;">
+                    <h3 style="color: #4a5568; margin-bottom: 15px;">订单摘要</h3>
+                    <div id="orderSummary">
+                        <p style="text-align: center; color: #718096;">购物车为空，请先添加商品</p>
+                    </div>
+                    <div class="cart-total" id="orderTotal">总计: ¥0.00</div>
+                </div>
+
+                <!-- 客户信息表单 -->
+                <form id="orderForm">
+                    <h3 style="color: #4a5568; margin-bottom: 20px;">客户信息</h3>
+                    
+                    <div class="form-group">
+                        <label for="customer_name">姓名 *</label>
+                        <input type="text" id="customer_name" name="customer_name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customer_phone">电话</label>
+                        <input type="tel" id="customer_phone" name="customer_phone">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customer_email">邮箱</label>
+                        <input type="email" id="customer_email" name="customer_email">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customer_address">地址</label>
+                        <textarea id="customer_address" name="customer_address" rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="payment_method">支付方式 *</label>
+                        <select id="payment_method" name="payment_method" required>
+                            <option value="">请选择支付方式</option>
+                            <option value="cash">现金</option>
+                            <option value="card">银行卡</option>
+                            <option value="alipay">支付宝</option>
+                            <option value="wechat">微信支付</option>
+                        </select>
+                    </div>
+
+                    <div style="text-align: center; margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary" style="padding: 15px 40px; font-size: 1.1em;">
+                            提交订单
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 订单历史标签页 -->
+            <div id="ordersTab" class="tab-content">
+                <h2 style="color: #4a5568; margin-bottom: 20px;">订单历史</h2>
+                <div id="ordersContainer">
+                    <div style="text-align: center; padding: 40px;">
+                        <div class="loading"></div>
+                        <p style="margin-top: 10px; color: #718096;">正在加载订单...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        // 更新订单摘要
+        function updateOrderSummary() {
+            const summaryContainer = document.getElementById('orderSummary');
+            const orderTotal = document.getElementById('orderTotal');
+            
+            if (!summaryContainer || !orderTotal) return;
+
+            if (cart.length === 0) {
+                summaryContainer.innerHTML = '<p style="text-align: center; color: #718096;">购物车为空，请先添加商品</p>';
+                orderTotal.textContent = '总计: ¥0.00';
+                return;
+            }
+
+            let total = 0;
+            summaryContainer.innerHTML = '';
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                total += itemTotal;
+
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'cart-item';
+                summaryItem.innerHTML = `
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        <small>¥${item.price.toFixed(2)} x ${item.quantity}</small>
+                    </div>
+                    <div>¥${itemTotal.toFixed(2)}</div>
+                `;
+                summaryContainer.appendChild(summaryItem);
+            });
+
+            orderTotal.textContent = `总计: ¥${total.toFixed(2)}`;
+        }
+
+        // 重写updateCartDisplay函数以同时更新订单摘要
+        const originalUpdateCartDisplay = updateCartDisplay;
+        updateCartDisplay = function() {
+            originalUpdateCartDisplay();
+            updateOrderSummary();
+        };
+
+        // 切换到订单标签时更新摘要
+        const originalShowTab = showTab;
+        showTab = function(tabName) {
+            originalShowTab(tabName);
+            if (tabName === 'order') {
+                updateOrderSummary();
+            }
+        };
+    </script>
+</body>
+</html>
